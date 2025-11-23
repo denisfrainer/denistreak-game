@@ -3,38 +3,61 @@ import { create } from 'zustand'
 interface GameState {
     money: number
     xp: number
+    fissura: number
+    alignment: 'rat' | 'wolf'
+    currentTask: string
+    stamina: number
+    maxStamina: number
+    deliveryTarget: { x: number; z: number }
+    isAtDeliverySpot: boolean
     settings: {
         lowPowerMode: boolean
     }
     actions: {
         performTask: () => void
+        setDeliveryStatus: (isAtSpot: boolean) => void
         tick: () => void
         toggleLowPowerMode: () => void
     }
 }
 
 export const useGameStore = create<GameState>((set) => ({
-    money: 100, // Starting money (Suco)
-    xp: 0,
+    money: 100,
+    xp: 50,
+    fissura: 0,
+    alignment: 'rat',
+    currentTask: 'iFood R$7',
+    stamina: 100,
+    maxStamina: 100,
+    deliveryTarget: { x: 10, z: 10 }, // Initial target
+    isAtDeliverySpot: false,
     settings: {
         lowPowerMode: false,
     },
     actions: {
         performTask: () => {
             set((state) => {
-                // Resulting Logic:
-                // Process (XP) is guaranteed.
-                // Result (Money) is RNG-based.
+                if (!state.isAtDeliverySpot) return {}
 
-                const guaranteedXp = 10
-                const successChance = 0.7 // 70% chance to make money
-                const moneyEarned = Math.random() < successChance ? Math.floor(Math.random() * 50) + 10 : 0
+                // Resulting Logic:
+                const guaranteedXp = 50
+                const moneyEarned = 100
+
+                // Generate new target far away (simple random for now)
+                // Range: -40 to 40
+                const newX = (Math.random() - 0.5) * 80
+                const newZ = (Math.random() - 0.5) * 80
 
                 return {
                     xp: state.xp + guaranteedXp,
                     money: state.money + moneyEarned,
+                    deliveryTarget: { x: newX, z: newZ },
+                    isAtDeliverySpot: false, // Reset status immediately
                 }
             })
+        },
+        setDeliveryStatus: (isAtSpot: boolean) => {
+            set({ isAtDeliverySpot: isAtSpot })
         },
         tick: () => {
             set((state) => ({
