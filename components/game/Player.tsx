@@ -25,7 +25,7 @@ export function Player({ rigidBodyRef }: PlayerProps) {
 
     // State Tracking
     const currentAction = useRef<string>('IDLE')
-    const [debugState, setDebugState] = useState('IDLE')
+    // Removed debugState to clean up UI
 
     // Material enhancement
     useMemo(() => {
@@ -124,7 +124,6 @@ export function Player({ rigidBodyRef }: PlayerProps) {
             }
 
             currentAction.current = targetState
-            setDebugState(targetState)
         }
 
         // 4. Physics & Rotation
@@ -149,9 +148,13 @@ export function Player({ rigidBodyRef }: PlayerProps) {
                 )
                 .normalize()
 
-            let currentSpeed = MOVESPEED * 10
+            // Adjusted multiplier to 35 as requested by user
+            let currentSpeed = MOVESPEED * 35
             if (targetState === 'RUN') {
-                currentSpeed = MOVESPEED * RUN_MULTIPLIER * 10
+                // Boost for non-girl characters (Soldier, Wolf, Businessman)
+                const isGirl = characterKey === 'girl'
+                const extraRunBoost = isGirl ? 1.0 : 1.8 // Increased to 80% extra speed
+                currentSpeed = MOVESPEED * RUN_MULTIPLIER * 35 * extraRunBoost
             }
 
             const moveImpulse = moveDir.multiplyScalar(currentSpeed)
@@ -195,11 +198,6 @@ export function Player({ rigidBodyRef }: PlayerProps) {
             />
 
             <group>
-                <Html position={[0, 2.2, 0]} center>
-                    <div style={{ background: 'rgba(0,0,0,0.5)', color: 'white', padding: '2px 5px', borderRadius: '4px', fontSize: '10px' }}>
-                        State: {debugState}
-                    </div>
-                </Html>
                 <group ref={characterGroupRef}>
                     <primitive key={config.model} object={clone} position={[0, -0.9, 0]} scale={finalScale} />
                 </group>
