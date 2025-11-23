@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import nipplejs from 'nipplejs'
-import { useControlsStore } from '@/store/controlsStore'
+import { useGameStore } from '@/store/gameStore'
 
 export function Joystick() {
     const joystickRef = useRef<HTMLDivElement>(null)
-    const setMovement = useControlsStore((state) => state.setMovement)
+    const setJoystick = useGameStore((state) => state.setJoystick)
 
     useEffect(() => {
         if (!joystickRef.current) return
@@ -21,26 +21,26 @@ export function Joystick() {
 
         manager.on('move', (_, data) => {
             if (data.vector) {
-                // Invert Y because screen Y is down, but 3D world Z is "down/up" depending on camera
-                // Usually for top-down: Up (Screen -Y) -> -Z (World Forward)
-                // But let's just pass raw vector and adjust in Player
-                setMovement(data.vector.x, data.vector.y)
+                const forward = data.vector.y
+                const turn = -data.vector.x
+                setJoystick({ forward, turn, active: true })
             }
         })
 
         manager.on('end', () => {
-            setMovement(0, 0)
+            setJoystick({ forward: 0, turn: 0, active: false })
         })
 
         return () => {
             manager.destroy()
         }
-    }, [setMovement])
+    }, [setJoystick])
 
     return (
         <div
             ref={joystickRef}
-            className="absolute bottom-10 left-10 w-32 h-32 z-50 touch-none"
+            className="absolute bottom-10 left-10 w-32 h-32 z-50 touch-none pointer-events-auto"
+            style={{ touchAction: 'none' }}
         />
     )
 }

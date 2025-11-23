@@ -3,6 +3,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { RapierRigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
+import { useRef } from 'react'
 
 interface ChaseCameraProps {
     playerRef: React.RefObject<RapierRigidBody | null>
@@ -11,37 +12,45 @@ interface ChaseCameraProps {
 export function ChaseCamera({ playerRef }: ChaseCameraProps) {
     const { camera } = useThree()
 
-    // Isometric Angle
-    // 35.264 degrees (approx) is standard isometric pitch
-    // We'll set a fixed rotation and just move the camera
-    const isoRotation = new THREE.Euler(-Math.PI / 4, Math.PI / 4, 0, 'YXZ') // 45 deg Y, -45 deg X
+    const currentAngle = useRef(0)
 
-    // Offset distance for Orthographic
-    // In Ortho, distance doesn't affect size, but it affects clipping and lighting direction if attached
-    const offset = new THREE.Vector3(8, 8, 8)
-    const smoothSpeed = 0.1
+    // Camera Configuration - Increased for wider view
+    const distance = 15  // Increased from 10
+    const height = 8     // Increased from 6
 
-    useFrame(() => {
+    useFrame((state, delta) => {
         if (!playerRef.current) return
 
         const playerPos = playerRef.current.translation()
-        const targetPos = new THREE.Vector3(playerPos.x, playerPos.y, playerPos.z)
 
-        // Desired position maintains fixed offset relative to player world pos
-        // We do NOT rotate with player
-        const desiredPosition = targetPos.clone().add(offset)
+        // Get velocity to determine movement direction
+        const vel = playerRef.current.linvel()
+        const speed = Math.sqrt(vel.x ** 2 + vel.z ** 2)
 
-        // Smooth follow
-        camera.position.lerp(desiredPosition, smoothSpeed)
+        let targetAngle = currentAngle.current
 
-        // Always look at the player (or slightly ahead)
-        camera.lookAt(targetPos)
-
-        // Ensure Orthographic Zoom is set (can also be done in Canvas, but good to ensure)
-        if (camera.type === 'OrthographicCamera') {
-            camera.zoom = 20 // Zoom out to see more
-            camera.updateProjectionMatrix()
+        // Only update angle if moving significantly
+        if (speed > 0.5) {
+            targetAngle = Math.atan2(vel.x, vel.z)
         }
+
+        // Smoothly interpolate angle
+        let angleDiff = targetAngle - currentAngle.current
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2
+
+        currentAngle.current += angleDiff * (delta * 2)
+
+        // Calculate camera position
+        const cameraX = playerPos.x - Math.sin(currentAngle.current) * distance
+        const cameraZ = playerPos.z - Math.cos(currentAngle.current) * distance
+
+        const desiredPosition = new THREE.Vector3(cameraX, playerPos.y + height, cameraZ)
+
+        camera.position.lerp(desiredPosition, 0.1)
+
+        // Look slightly above player's head to see horizon
+        camera.lookAt(playerPos.x, playerPos.y + 2.0, playerPos.z)
     })
 
     return null

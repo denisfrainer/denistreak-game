@@ -12,49 +12,36 @@ export function NavigationArrow() {
     useFrame((state) => {
         if (!arrowRef.current) return
 
-        // Calculate direction to target
-        // Get player position (world)
+        // Get parent (player) world position
         const playerPos = new THREE.Vector3()
-        arrowRef.current.getWorldPosition(playerPos)
+        if (arrowRef.current.parent) {
+            arrowRef.current.parent.getWorldPosition(playerPos)
+        }
 
-        // Target position (world)
-        const targetPos = new THREE.Vector3(deliveryTarget.x, playerPos.y, deliveryTarget.z)
+        // Target position (global coordinates)
+        const targetPos = new THREE.Vector3(deliveryTarget.x, playerPos.y + 3.5, deliveryTarget.z)
 
-        // Make the arrow look at the target
+        // Calculate direction vector
+        const direction = new THREE.Vector3()
+        direction.subVectors(targetPos, playerPos)
+        direction.y = 0 // Keep it horizontal
+        direction.normalize()
+
+        // Position arrow slightly forward to avoid jitter
+        const arrowWorldPos = playerPos.clone()
+        arrowWorldPos.y += 3.5
+        arrowWorldPos.add(direction.multiplyScalar(0.5)) // Small offset forward
+
+        // Point at target
+        arrowRef.current.position.set(0, 3.5, 0)
         arrowRef.current.lookAt(targetPos)
 
-        // Animation: Float and Spin
+        // Animation: Float
         const time = state.clock.getElapsedTime()
-
-        // Float (Sine wave on Y)
-        // Base position is handled by parent group, we animate local Y
-        // Actually, let's animate the mesh inside the group to avoid fighting with lookAt?
-        // No, lookAt affects rotation, position is fine.
-        // But wait, lookAt rotates the whole group.
-        // Let's animate the inner mesh for spin, and the group Y for float?
-        // Simpler: Animate the group's Y position relative to player.
-
-        // We can't easily animate group Y here because it's set in the return JSX.
-        // Let's animate the mesh rotation and position.
-
         const mesh = arrowRef.current.children[0]
         if (mesh) {
-            // Float
             mesh.position.y = Math.sin(time * 3) * 0.2
-
-            // Spin (on its own axis, maybe? No, arrow needs to point to target)
-            // The user asked for "girar (useFrame) para chamar atenção".
-            // If it spins, it stops pointing to target.
-            // Maybe they mean a "bobbing" spin or just the floating?
-            // "girar" usually means spin.
-            // Let's make it spin around its local Z axis (barrel roll) or just float?
-            // A pointing arrow shouldn't spin like a top.
-            // Maybe they mean "rotate" as in "face the target"?
-            // "girar... para chamar atenção" -> Maybe a slow rotation around its own axis while pointing?
-            // Let's do a "scale pulse" or just the floating. Floating is "flutuar".
-            // "flutuar um pouco mais alto e girar".
-            // Let's add a local rotation to the mesh, so it spins while the group points.
-            mesh.rotation.z = time * 2
+            mesh.rotation.z = time * 2 // Spin for attention
         }
     })
 
