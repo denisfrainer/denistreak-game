@@ -1,6 +1,7 @@
 'use client'
 
 import { useGLTF, useAnimations } from '@react-three/drei'
+import { useControls } from 'leva'
 import { useEffect, useMemo } from 'react'
 import { SkeletonUtils } from 'three-stdlib'
 import * as THREE from 'three'
@@ -15,21 +16,10 @@ export function DancingNPC({ position }: DancingNPCProps) {
     // Clone scene for independent instance
     const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
 
-    // Auto-scale to normal human size
-    const scale = useMemo(() => {
-        const box = new THREE.Box3().setFromObject(clone)
-        const size = new THREE.Vector3()
-        box.getSize(size)
-        const height = size.y
-
-        if (height === 0) return 1
-
-        // Target height ~1.8 units (standard human)
-        const targetHeight = 1.8
-        const scaleFactor = targetHeight / height
-
-        return scaleFactor
-    }, [clone])
+    // Leva controls for scale
+    const { scale } = useControls('NPC', {
+        scale: { value: 1.0, min: 0.1, max: 3, step: 0.1 }
+    })
 
     // Setup animations
     const { actions, names } = useAnimations(animations, clone)
@@ -53,11 +43,11 @@ export function DancingNPC({ position }: DancingNPCProps) {
                 penumbra={0.5}
                 intensity={10}
                 color="#ff00ff"
-                castShadow
+                castShadow={false}
             />
             <pointLight position={[0, 1, 0]} distance={8} intensity={3} color="#ff00ff" />
 
-            <primitive object={clone} scale={scale} />
+            <primitive object={clone} scale={[scale, scale, scale]} castShadow={false} />
         </group>
     )
 }
