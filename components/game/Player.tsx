@@ -130,6 +130,10 @@ export function Player({ rigidBodyRef }: PlayerProps) {
         const MOVESPEED = config.physics.speed
         const RUN_MULTIPLIER = 1.8
 
+        // Sync position to store
+        const currentPos = rigidBodyRef.current.translation()
+        useGameStore.getState().setPlayerPosition(currentPos)
+
         if (isJoystickActive) {
             const camera = state.camera
 

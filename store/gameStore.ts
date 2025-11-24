@@ -32,6 +32,18 @@ interface GameState {
         completeTask: (taskName: string) => void
     }
     setJoystick: (data: { forward: number; turn: number; active: boolean }) => void
+    interaction: {
+        type: 'dialogue'
+        data: {
+            npcId: string
+            text: string
+            onClose: () => void
+        }
+    } | null
+    playerPosition: { x: number; y: number; z: number } | null
+    setInteraction: (interaction: GameState['interaction']) => void
+    clearInteraction: () => void
+    setPlayerPosition: (pos: { x: number; y: number; z: number }) => void
 }
 
 // NPC Positions
@@ -62,6 +74,11 @@ export const useGameStore = create<GameState>((set) => ({
     setJoystick: (data) => set((state) => ({
         controls: { ...state.controls, ...data }
     })),
+    interaction: null,
+    playerPosition: null,
+    setInteraction: (interaction) => set({ interaction }),
+    clearInteraction: () => set({ interaction: null }),
+    setPlayerPosition: (pos) => set({ playerPosition: pos }),
     actions: {
         completeTask: (taskName: string) => {
             set((state) => ({

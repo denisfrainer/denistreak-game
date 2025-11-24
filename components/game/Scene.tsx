@@ -10,6 +10,7 @@ import { useGameStore } from '@/store/gameStore'
 import { Stars, Grid, Stats, Environment } from '@react-three/drei'
 import { DancingNPC } from './DancingNPC'
 import { AnimatedLights } from './AnimatedLights'
+import { SmartNPC } from './SmartNPC'
 
 export function Scene() {
     const playerRef = useRef<RapierRigidBody>(null)
@@ -69,6 +70,12 @@ export function Scene() {
                             <meshBasicMaterial color="#00ff00" wireframe />
                         </mesh>
                     </group>
+
+                    {/* AI NPCs */}
+                    <SmartNPC npcId="office_guy" modelPath="/office-npc1.glb" initialPosition={[10, 0, 10]} />
+                    <SmartNPC npcId="boris" modelPath="/russian-npc1.glb" initialPosition={[-15, 0, -15]} />
+                    <SmartNPC npcId="vlad" modelPath="/russian-npc2.glb" initialPosition={[-18, 0, -12]} />
+                    <SmartNPC npcId="dimitri" modelPath="/russian-npc3.glb" initialPosition={[-20, 0, -18]} />
                 </Physics>
             </Canvas>
         </div>

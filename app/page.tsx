@@ -9,6 +9,7 @@ const Scene = dynamic(() => import('@/components/game/Scene').then(mod => mod.Sc
 const HUD = dynamic(() => import('@/components/ui/HUD').then(mod => mod.HUD), { ssr: false })
 const VirtualGamepad = dynamic(() => import('@/components/ui/VirtualGamepad').then(mod => mod.VirtualGamepad), { ssr: false })
 const MobileControls = dynamic(() => import('@/components/game/MobileControls'), { ssr: false })
+const DialogueSystem = dynamic(() => import('@/components/ui/DialogueSystem').then(mod => mod.DialogueSystem), { ssr: false })
 
 export default function Home() {
   const { tick } = useGameActions()
@@ -26,6 +27,7 @@ export default function Home() {
     <main className="relative w-full h-screen overflow-hidden select-none touch-none">
       <Scene />
       <HUD />
+      <DialogueSystem />
       <VirtualGamepad />
       <MobileControls />
     </main>

@@ -18,7 +18,7 @@ export function DancingNPC({ position }: DancingNPCProps) {
 
     // Leva controls for scale
     const { scale } = useControls('NPC', {
-        scale: { value: 1.0, min: 0.1, max: 3, step: 0.1 }
+        scale: { value: 1.0, min: 0.1, max: 5, step: 0.1 }
     })
 
     // Setup animations
@@ -34,6 +34,17 @@ export function DancingNPC({ position }: DancingNPCProps) {
         }
     }, [actions, names])
 
+    // Force scale reduction
+    useEffect(() => {
+        if (clone) {
+            // FORÇA BRUTA: Reduz o modelo para 1% do tamanho original.
+            const BASE_SCALE = 0.02
+            clone.scale.set(BASE_SCALE, BASE_SCALE, BASE_SCALE)
+            // Apply Leva scale on top
+            clone.scale.multiplyScalar(scale)
+        }
+    }, [clone, scale])
+
     return (
         <group position={position}>
             {/* Pink/Purple spotlight on dancer */}
@@ -47,7 +58,7 @@ export function DancingNPC({ position }: DancingNPCProps) {
             />
             <pointLight position={[0, 1, 0]} distance={8} intensity={3} color="#ff00ff" />
 
-            <primitive object={clone} scale={[scale, scale, scale]} castShadow={false} />
+            <primitive object={clone} castShadow={false} />
         </group>
     )
 }
