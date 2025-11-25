@@ -11,9 +11,16 @@ import { DancingNPC } from './DancingNPC'
 import { AnimatedLights } from './AnimatedLights'
 import { SmartNPC } from './SmartNPC'
 import { NeonObstacles } from './NeonObstacles'
+import { CarProp } from './CarProp'
+import { CarPlayer } from './CarPlayer'
+import { ParkedCar } from './ParkedCar'
+import { DebugCar } from './DebugCar'
 
 export function Scene() {
     const playerRef = useRef<RapierRigidBody>(null)
+    const carRef = useRef<RapierRigidBody>(null)
+    const isDriving = useGameStore((state) => state.isDriving)
+    const carPosition = useGameStore((state) => state.carPosition)
 
     // Random Spawn Logic
     const getRandomPos = (min: number, max: number) => Math.random() * (max - min) + min
@@ -57,17 +64,36 @@ export function Scene() {
                         <CuboidCollider args={[1000, 1, 1000]} />
                     </RigidBody>
 
-                    {/* Player */}
-                    <Player rigidBodyRef={playerRef} />
+                    {/* Conditional Rendering for Driving Mode */}
+                    {!isDriving ? (
+                        <>
+                            <Player rigidBodyRef={playerRef} />
+                            {/* The Parked Car (Interactable) */}
+                            <ParkedCar position={[carPosition.x, carPosition.y, carPosition.z]} />
+                        </>
+                    ) : (
+                        /* The Active Car (Drivable) */
+                        <CarPlayer rigidBodyRef={carRef} position={[carPosition.x, carPosition.y, carPosition.z]} />
+                    )}
 
-                    {/* Camera follows player */}
-                    <ChaseCamera targetRef={playerRef} />
+                    {/* Camera follows active target */}
+                    <ChaseCamera targetRef={isDriving ? carRef : playerRef} />
 
                     {/* NPC 1 - Pickup */}
                     <DancingNPC position={[-20, 0, -20]} />
 
                     {/* Neon Obstacles (Physics Playground) */}
                     <NeonObstacles />
+
+                    {/* Cars (Obstacles) */}
+                    {/* Police near Office Guy (approx [10, 0, 10]) */}
+                    <CarProp type="police" position={[15, 0.5, 15]} rotation={[0, Math.PI / 4, 0]} />
+
+                    {/* Van near Russian Gang (approx [-40, 0, -10]) */}
+                    <CarProp type="van" position={[-35, 0.5, -15]} rotation={[0, -Math.PI / 3, 0]} />
+
+                    {/* Debug Car for Node Inspection (Removed) */}
+                    {/* <DebugCar /> */}
 
                     {/* AI NPCs - Randomly Spawned */}
                     <SmartNPC npcId="office_guy" modelPath="/office-npc1.glb" initialPosition={getRandomSpawn()} scale={3.0} />
@@ -79,5 +105,3 @@ export function Scene() {
         </div>
     )
 }
-
-

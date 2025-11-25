@@ -30,6 +30,8 @@ interface GameState {
         collectFood: () => void
         deliverFood: () => void
         completeTask: (taskName: string) => void
+        enterCar: () => void
+        exitCar: (pos: { x: number; y: number; z: number }) => void
     }
     setJoystick: (data: { forward: number; turn: number; active: boolean }) => void
     interaction: {

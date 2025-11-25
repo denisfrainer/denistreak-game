@@ -7,6 +7,7 @@ import * as THREE from 'three'
 import { useGameStore, useGameActions } from '@/store/gameStore'
 import { InteractionCue } from './InteractionCue'
 import { useControls } from 'leva'
+import { splitGeometryByPosition } from '@/utils/modelUtils'
 
 interface ParkedCarProps {
     position: [number, number, number]
@@ -20,6 +21,11 @@ export function ParkedCar({ position, rotation = [0, 0, 0] }: ParkedCarProps) {
     const playerPosition = useGameStore((state) => state.playerPosition)
     const isDriving = useGameStore((state) => state.isDriving)
 
+    // Debug: Log all nodes to find wheels
+    useEffect(() => {
+        console.log('ParkedCar Nodes:', Object.keys(nodes))
+    }, [nodes])
+
     // Leva Controls
     const { scale, cueHeight, interactionDist } = useControls('Parked Car', {
         scale: { value: 3.0, min: 0.5, max: 5.0, step: 0.1 },
@@ -27,17 +33,51 @@ export function ParkedCar({ position, rotation = [0, 0, 0] }: ParkedCarProps) {
         interactionDist: { value: 15.0, min: 2.0, max: 20.0, step: 0.5 }
     })
 
+    // Memoize the split geometries to avoid re-calculating on every render
+    const wheelGeometries = useMemo(() => {
+        const wheelsMesh = nodes['Object_1'] as THREE.Mesh
+        if (!wheelsMesh) return null
+
+        // Centers from the hierarchy log
+        const centers: Record<string, [number, number, number]> = {
+            police: [0, 0, 0],
+            van: [-3.17, 0, 1.21],
+            sedan: [3.07, -0.09, 1.20]
+        }
+
+        return splitGeometryByPosition(wheelsMesh, centers, 2.0)
+    }, [nodes])
+
     const carMesh = useMemo(() => {
         // Using Object_24 (Sedan)
-        const node = nodes['Object_24'] as THREE.Mesh
-        if (node) {
-            const clone = node.clone()
-            clone.position.set(0, -0.5, 0)
-            clone.rotation.set(0, Math.PI, 0)
-            return clone
+        const body = nodes['Object_24'] as THREE.Mesh
+
+        if (body && wheelGeometries && wheelGeometries['sedan']) {
+            const group = new THREE.Group()
+
+            const bodyClone = body.clone()
+            bodyClone.position.set(0, -0.5, 0)
+            bodyClone.rotation.set(0, Math.PI, 0)
+            group.add(bodyClone)
+
+            const wheelsGeometry = wheelGeometries['sedan']
+            const wheelsMaterial = (nodes['Object_1'] as THREE.Mesh).material
+            const wheelsMesh = new THREE.Mesh(wheelsGeometry, wheelsMaterial)
+
+            // Sedan Offset: Inverse of [3.07, -0.09, 1.20] -> [-3.07, 0.09, -1.20]
+            // Adjusted for base position (0, -0.5, 0)
+            const offsetX = -3.07
+            const offsetY = 0.09 - 0.5
+            const offsetZ = -1.20
+
+            wheelsMesh.position.set(offsetX, offsetY, offsetZ)
+            wheelsMesh.rotation.set(0, Math.PI, 0)
+            group.add(wheelsMesh)
+
+            return group
         }
         return null
-    }, [nodes])
+    }, [nodes, wheelGeometries])
 
     // Interaction Logic
     const isClose = useMemo(() => {
