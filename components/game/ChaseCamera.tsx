@@ -6,10 +6,10 @@ import * as THREE from 'three'
 import { useRef } from 'react'
 
 interface ChaseCameraProps {
-    playerRef: React.RefObject<RapierRigidBody | null>
+    targetRef: React.RefObject<RapierRigidBody | null>
 }
 
-export function ChaseCamera({ playerRef }: ChaseCameraProps) {
+export function ChaseCamera({ targetRef }: ChaseCameraProps) {
     const { camera } = useThree()
 
     const currentAngle = useRef(0)
@@ -19,12 +19,12 @@ export function ChaseCamera({ playerRef }: ChaseCameraProps) {
     const height = 8     // Increased from 6
 
     useFrame((state, delta) => {
-        if (!playerRef.current) return
+        if (!targetRef.current) return
 
-        const playerPos = playerRef.current.translation()
+        const playerPos = targetRef.current.translation()
 
         // Get velocity to determine movement direction
-        const vel = playerRef.current.linvel()
+        const vel = targetRef.current.linvel()
         const speed = Math.sqrt(vel.x ** 2 + vel.z ** 2)
 
         let targetAngle = currentAngle.current

@@ -53,6 +53,21 @@ interface GameState {
     setInteractionTarget: (target: GameState['interactionTarget']) => void
     clearInteraction: () => void
     setPlayerPosition: (pos: { x: number; y: number; z: number }) => void
+    isDriving: boolean
+    carPosition: { x: number; y: number; z: number }
+    actions: {
+        // ... existing actions
+        performTask: () => void
+        setDeliveryStatus: (isAtSpot: boolean) => void
+        tick: () => void
+        toggleLowPowerMode: () => void
+        toggleCharacter: () => void
+        collectFood: () => void
+        deliverFood: () => void
+        completeTask: (taskName: string) => void
+        enterCar: () => void
+        exitCar: (pos: { x: number; y: number; z: number }) => void
+    }
 }
 
 // NPC Positions
@@ -72,6 +87,8 @@ export const useGameStore = create<GameState>((set) => ({
     isAtDeliverySpot: false,
     hasFood: false,
     completedTasks: new Set(),
+    isDriving: false,
+    carPosition: { x: 0, y: 0.5, z: 10 }, // Moved closer to spawn for easier testing
     controls: {
         forward: 0,
         turn: 0,
@@ -170,6 +187,16 @@ export const useGameStore = create<GameState>((set) => ({
                     character: chars[nextIndex],
                 }
             })
+        },
+        enterCar: () => {
+            set({ isDriving: true, interaction: null, interactionTarget: null })
+        },
+        exitCar: (pos: { x: number; y: number; z: number }) => {
+            set((state) => ({
+                isDriving: false,
+                carPosition: pos,
+                playerPosition: { x: pos.x + 2, y: pos.y, z: pos.z }, // Exit slightly to the side
+            }))
         },
     },
 }))

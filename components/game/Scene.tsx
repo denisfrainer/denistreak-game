@@ -1,13 +1,12 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
+import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
 import { Player } from './Player'
 import { ChaseCamera } from './ChaseCamera'
 import { useRef } from 'react'
-import { RapierRigidBody } from '@react-three/rapier'
 import { useGameStore } from '@/store/gameStore'
-import { Stars, Grid, Stats, Environment, Edges } from '@react-three/drei'
+import { Stars, Grid, Stats, Environment } from '@react-three/drei'
 import { DancingNPC } from './DancingNPC'
 import { AnimatedLights } from './AnimatedLights'
 import { SmartNPC } from './SmartNPC'
@@ -15,7 +14,6 @@ import { NeonObstacles } from './NeonObstacles'
 
 export function Scene() {
     const playerRef = useRef<RapierRigidBody>(null)
-    const lowPowerMode = useGameStore((state) => state.settings.lowPowerMode)
 
     // Random Spawn Logic
     const getRandomPos = (min: number, max: number) => Math.random() * (max - min) + min
@@ -59,10 +57,11 @@ export function Scene() {
                         <CuboidCollider args={[1000, 1, 1000]} />
                     </RigidBody>
 
+                    {/* Player */}
                     <Player rigidBodyRef={playerRef} />
 
-                    {/* Camera */}
-                    <ChaseCamera playerRef={playerRef} />
+                    {/* Camera follows player */}
+                    <ChaseCamera targetRef={playerRef} />
 
                     {/* NPC 1 - Pickup */}
                     <DancingNPC position={[-20, 0, -20]} />
@@ -80,3 +79,5 @@ export function Scene() {
         </div>
     )
 }
+
+
