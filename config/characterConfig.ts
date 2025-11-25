@@ -26,7 +26,7 @@ export const CHARACTER_DATA = {
         scale: 1.43,
         animations: {
             IDLE: 'idle',
-            WALK: 'idle2', // Wolf walk is idle2? Based on previous code
+            WALK: 'running', // Reusing running for walk (slowed down by Player.tsx)
             RUN: 'running',
             ACTION: 'Interact'
         },

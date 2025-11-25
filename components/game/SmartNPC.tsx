@@ -7,40 +7,51 @@ import { RigidBody, RapierRigidBody, vec3 } from '@react-three/rapier'
 import * as THREE from 'three'
 import { SkeletonUtils } from 'three-stdlib'
 import { useGameStore } from '@/store/gameStore'
+import { InteractionCue } from './InteractionCue'
 
 interface SmartNPCProps {
     npcId: string
     modelPath: string
     initialPosition: [number, number, number]
+    scale?: number
 }
 
 type NPCState = 'IDLE' | 'PATROL' | 'TALKING'
 
-export function SmartNPC({ npcId, modelPath, initialPosition }: SmartNPCProps) {
+export function SmartNPC({ npcId, modelPath, initialPosition, scale = 1 }: SmartNPCProps) {
     const rigidBodyRef = useRef<RapierRigidBody>(null)
     const groupRef = useRef<THREE.Group>(null)
 
     // Load model and animations
     const { scene, animations } = useGLTF(modelPath)
     const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
-    const { actions } = useAnimations(animations, groupRef)
+    const { actions, names } = useAnimations(animations, groupRef)
 
     // State
     const [state, setState] = useState<NPCState>('IDLE')
     const [targetPosition, setTargetPosition] = useState<THREE.Vector3 | null>(null)
     const [dialogue, setDialogue] = useState<string | null>(null)
     const [isThinking, setIsThinking] = useState(false)
+    const [showCue, setShowCue] = useState(false)
+
+    // Stuck Detection State
+    const lastPosRef = useRef<THREE.Vector3>(new THREE.Vector3(initialPosition[0], initialPosition[1], initialPosition[2]))
+    const lastCheckTimeRef = useRef<number>(0)
 
     // Store
     const playerPosition = useGameStore((state) => state.playerPosition)
     const setInteraction = useGameStore((state) => state.setInteraction)
     const clearInteraction = useGameStore((state) => state.clearInteraction)
+    const setInteractionTarget = useGameStore((state) => state.setInteractionTarget)
+    const interactionTarget = useGameStore((state) => state.interactionTarget)
 
     // Constants
     const PATROL_RADIUS = 10
     const MOVE_SPEED = 2
     const IDLE_TIME_MIN = 2000
     const IDLE_TIME_MAX = 5000
+    const STUCK_CHECK_INTERVAL = 2.0 // Check every 2 seconds
+    const STUCK_THRESHOLD = 0.5 // Minimum distance to move to not be considered stuck
 
     // Initialize position
     useEffect(() => {
@@ -51,8 +62,8 @@ export function SmartNPC({ npcId, modelPath, initialPosition }: SmartNPCProps) {
 
     // Animation Logic
     useEffect(() => {
-        const idleAction = actions['Idle'] || actions['idle'] || actions['mixamo.com']
-        const walkAction = actions['Walk'] || actions['walk'] || actions['Run'] || actions['run']
+        const idleAction = actions[names.find(n => /idle|breath/i.test(n)) || names[0]]
+        const walkAction = actions[names.find(n => /walk|run|move/i.test(n)) || names[0]]
 
         if (state === 'PATROL') {
             idleAction?.fadeOut(0.2)
@@ -66,7 +77,7 @@ export function SmartNPC({ npcId, modelPath, initialPosition }: SmartNPCProps) {
             idleAction?.stop()
             walkAction?.stop()
         }
-    }, [state, actions])
+    }, [state, actions, names])
 
     // State Machine Logic
     useEffect(() => {
@@ -95,6 +106,22 @@ export function SmartNPC({ npcId, modelPath, initialPosition }: SmartNPCProps) {
         const currentPos = rigidBodyRef.current.translation()
         const currentVec = new THREE.Vector3(currentPos.x, currentPos.y, currentPos.z)
 
+        // Stuck Detection
+        if (state === 'PATROL') {
+            const time = rootState.clock.elapsedTime
+            if (time - lastCheckTimeRef.current > STUCK_CHECK_INTERVAL) {
+                const distMoved = currentVec.distanceTo(lastPosRef.current)
+                if (distMoved < STUCK_THRESHOLD) {
+                    // Stuck! Reset to IDLE to pick a new target
+                    // console.log(`NPC ${npcId} stuck! Resetting.`)
+                    setState('IDLE')
+                    rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
+                }
+                lastPosRef.current.copy(currentVec)
+                lastCheckTimeRef.current = time
+            }
+        }
+
         if (state === 'PATROL' && targetPosition) {
             const direction = new THREE.Vector3().subVectors(targetPosition, currentVec).normalize()
             const distance = currentVec.distanceTo(targetPosition)
@@ -120,17 +147,46 @@ export function SmartNPC({ npcId, modelPath, initialPosition }: SmartNPCProps) {
             const lookAtTarget = new THREE.Vector3(playerPosition.x, currentPos.y, playerPosition.z)
             groupRef.current.lookAt(lookAtTarget)
         }
+
+        // Fallback "Bobbing" animation if no animations exist
+        if (names.length === 0) {
+            groupRef.current.position.y = Math.sin(rootState.clock.elapsedTime * 5) * 0.1
+        }
+
+        // Interaction Proximity Check
+        if (playerPosition && state !== 'TALKING') {
+            const dist = currentVec.distanceTo(new THREE.Vector3(playerPosition.x, playerPosition.y, playerPosition.z))
+            const isClose = dist < 3 // Interaction radius
+            const isCueVisible = dist < 8 // Cue visibility radius (larger than interaction)
+
+            if (isCueVisible !== showCue) {
+                setShowCue(isCueVisible)
+            }
+
+            if (isClose) {
+                if (interactionTarget?.id !== npcId) {
+                    setInteractionTarget({
+                        type: 'npc',
+                        id: npcId,
+                        label: 'TROVAR',
+                        onInteract: () => handleInteract()
+                    })
+                }
+            } else {
+                if (interactionTarget?.id === npcId) {
+                    setInteractionTarget(null)
+                }
+            }
+        }
     })
 
     // Interaction Handler
-    const handleInteract = async () => {
-        if (state === 'TALKING') return // Already talking
+    const handleInteract = async (messageOverride?: string) => {
+        if (state === 'TALKING' && !messageOverride) return
 
         setState('TALKING')
         setIsThinking(true)
 
-        // Determine player status (mock for now, should come from store)
-        // Assuming we can get player status from store or just mock it as 'Wolf' for now if not available
         const playerStatus = 'Wolf' // TODO: Get real status
 
         try {
@@ -140,21 +196,23 @@ export function SmartNPC({ npcId, modelPath, initialPosition }: SmartNPCProps) {
                 body: JSON.stringify({
                     npcId,
                     playerStatus,
-                    message: "(Player greets you)"
+                    message: messageOverride || "(Player greets you)"
                 })
             })
             const data = await res.json()
-            setDialogue(data.reply)
 
-            // Show dialogue in global UI (or local bubble for now)
-            // For this step, we'll just log it or set local state. 
-            // The request asked for a DialogueSystem UI component.
-            // We should probably trigger that via the store.
+            const replyText = data.reply || data.text || "..."
+            const options = data.options || []
+
+            setDialogue(replyText)
+
             setInteraction({
                 type: 'dialogue',
                 data: {
                     npcId,
-                    text: data.reply,
+                    text: replyText,
+                    options: options,
+                    onReply: (msg) => handleInteract(msg),
                     onClose: () => {
                         setDialogue(null)
                         setState('IDLE')
@@ -180,6 +238,7 @@ export function SmartNPC({ npcId, modelPath, initialPosition }: SmartNPCProps) {
             type="dynamic"
             linearDamping={0.5}
             angularDamping={0.5}
+            mass={5}
         >
             <group
                 ref={groupRef}
@@ -190,16 +249,10 @@ export function SmartNPC({ npcId, modelPath, initialPosition }: SmartNPCProps) {
                 onPointerOver={() => document.body.style.cursor = 'pointer'}
                 onPointerOut={() => document.body.style.cursor = 'auto'}
             >
-                <primitive object={clone} scale={[1, 1, 1]} />
+                <primitive object={clone} scale={[scale, scale, scale]} />
 
-                {/* Simple interaction indicator */}
-                {state !== 'TALKING' && (
-                    <Html position={[0, 2, 0]} center>
-                        <div className="bg-black/50 text-white px-2 py-1 rounded text-xs opacity-0 hover:opacity-100 transition-opacity">
-                            Talk (Click)
-                        </div>
-                    </Html>
-                )}
+                {/* Interaction Cue */}
+                <InteractionCue visible={showCue && state !== 'TALKING'} />
 
                 {/* Thinking indicator */}
                 {isThinking && (

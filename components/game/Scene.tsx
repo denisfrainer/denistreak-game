@@ -7,14 +7,19 @@ import { ChaseCamera } from './ChaseCamera'
 import { useRef } from 'react'
 import { RapierRigidBody } from '@react-three/rapier'
 import { useGameStore } from '@/store/gameStore'
-import { Stars, Grid, Stats, Environment } from '@react-three/drei'
+import { Stars, Grid, Stats, Environment, Edges } from '@react-three/drei'
 import { DancingNPC } from './DancingNPC'
 import { AnimatedLights } from './AnimatedLights'
 import { SmartNPC } from './SmartNPC'
+import { NeonObstacles } from './NeonObstacles'
 
 export function Scene() {
     const playerRef = useRef<RapierRigidBody>(null)
     const lowPowerMode = useGameStore((state) => state.settings.lowPowerMode)
+
+    // Random Spawn Logic
+    const getRandomPos = (min: number, max: number) => Math.random() * (max - min) + min
+    const getRandomSpawn = (): [number, number, number] => [getRandomPos(-40, 40), 0.5, getRandomPos(-40, 40)]
 
     return (
         <div className="h-screen w-full bg-black">
@@ -62,20 +67,14 @@ export function Scene() {
                     {/* NPC 1 - Pickup */}
                     <DancingNPC position={[-20, 0, -20]} />
 
-                    {/* NPC 2 - Delivery */}
-                    <group position={[30, 0, 30]}>
-                        <pointLight position={[0, 3, 0]} distance={10} intensity={5} color="#00ff00" />
-                        <mesh position={[0, 1.5, 0]}>
-                            <boxGeometry args={[2, 3, 2]} />
-                            <meshBasicMaterial color="#00ff00" wireframe />
-                        </mesh>
-                    </group>
+                    {/* Neon Obstacles (Physics Playground) */}
+                    <NeonObstacles />
 
-                    {/* AI NPCs */}
-                    <SmartNPC npcId="office_guy" modelPath="/office-npc1.glb" initialPosition={[10, 0, 10]} />
-                    <SmartNPC npcId="boris" modelPath="/russian-npc1.glb" initialPosition={[-15, 0, -15]} />
-                    <SmartNPC npcId="vlad" modelPath="/russian-npc2.glb" initialPosition={[-18, 0, -12]} />
-                    <SmartNPC npcId="dimitri" modelPath="/russian-npc3.glb" initialPosition={[-20, 0, -18]} />
+                    {/* AI NPCs - Randomly Spawned */}
+                    <SmartNPC npcId="office_guy" modelPath="/office-npc1.glb" initialPosition={getRandomSpawn()} scale={3.0} />
+                    <SmartNPC npcId="boris" modelPath="/russian-npc1.glb" initialPosition={getRandomSpawn()} scale={3.0} />
+                    <SmartNPC npcId="vlad" modelPath="/russian-npc2.glb" initialPosition={getRandomSpawn()} scale={3.0} />
+                    <SmartNPC npcId="dimitri" modelPath="/russian-npc3.glb" initialPosition={getRandomSpawn()} scale={3.0} />
                 </Physics>
             </Canvas>
         </div>

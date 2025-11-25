@@ -1,7 +1,6 @@
 'use client'
 
 import { useGLTF, useAnimations } from '@react-three/drei'
-import { useControls } from 'leva'
 import { useEffect, useMemo } from 'react'
 import { SkeletonUtils } from 'three-stdlib'
 import * as THREE from 'three'
@@ -15,11 +14,6 @@ export function DancingNPC({ position }: DancingNPCProps) {
 
     // Clone scene for independent instance
     const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
-
-    // Leva controls for scale
-    const { scale } = useControls('NPC', {
-        scale: { value: 1.0, min: 0.1, max: 5, step: 0.1 }
-    })
 
     // Setup animations
     const { actions, names } = useAnimations(animations, clone)
@@ -40,10 +34,10 @@ export function DancingNPC({ position }: DancingNPCProps) {
             // FORÇA BRUTA: Reduz o modelo para 1% do tamanho original.
             const BASE_SCALE = 0.02
             clone.scale.set(BASE_SCALE, BASE_SCALE, BASE_SCALE)
-            // Apply Leva scale on top
-            clone.scale.multiplyScalar(scale)
+            // Hardcoded scale
+            clone.scale.multiplyScalar(1.8)
         }
-    }, [clone, scale])
+    }, [clone])
 
     return (
         <group position={position}>

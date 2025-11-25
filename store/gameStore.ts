@@ -37,11 +37,20 @@ interface GameState {
         data: {
             npcId: string
             text: string
+            options?: string[]
+            onReply?: (msg: string) => void
             onClose: () => void
         }
     } | null
+    interactionTarget: {
+        type: 'npc' | 'car'
+        id?: string
+        label?: string
+        onInteract?: () => void
+    } | null
     playerPosition: { x: number; y: number; z: number } | null
     setInteraction: (interaction: GameState['interaction']) => void
+    setInteractionTarget: (target: GameState['interactionTarget']) => void
     clearInteraction: () => void
     setPlayerPosition: (pos: { x: number; y: number; z: number }) => void
 }
@@ -75,8 +84,10 @@ export const useGameStore = create<GameState>((set) => ({
         controls: { ...state.controls, ...data }
     })),
     interaction: null,
+    interactionTarget: null,
     playerPosition: null,
     setInteraction: (interaction) => set({ interaction }),
+    setInteractionTarget: (target) => set({ interactionTarget: target }),
     clearInteraction: () => set({ interaction: null }),
     setPlayerPosition: (pos) => set({ playerPosition: pos }),
     actions: {

@@ -5,6 +5,48 @@ import { useGameActions, useGameStore } from '@/store/gameStore'
 export function VirtualGamepad() {
     const { performTask, toggleCharacter } = useGameActions()
     const isAtDeliverySpot = useGameStore((state) => state.isAtDeliverySpot)
+    const interactionTarget = useGameStore((state) => state.interactionTarget)
+
+    // Contextual Button A Logic
+    const getButtonAConfig = () => {
+        if (interactionTarget) {
+            if (interactionTarget.type === 'npc') {
+                return {
+                    label: '💬',
+                    subLabel: 'TROVAR',
+                    color: 'bg-green-500',
+                    borderColor: 'border-green-300',
+                    shadowColor: 'shadow-[0_4px_0_rgb(21,128,61)]',
+                    action: interactionTarget.onInteract,
+                    pulse: true
+                }
+            }
+            if (interactionTarget.type === 'car') {
+                return {
+                    label: '🚗',
+                    subLabel: 'DIRIGIR',
+                    color: 'bg-orange-500',
+                    borderColor: 'border-orange-300',
+                    shadowColor: 'shadow-[0_4px_0_rgb(194,65,12)]',
+                    action: interactionTarget.onInteract,
+                    pulse: true
+                }
+            }
+        }
+
+        // Default Action (Jump/Perform Task)
+        return {
+            label: 'A',
+            subLabel: null,
+            color: isAtDeliverySpot ? 'bg-green-500' : 'bg-green-600',
+            borderColor: 'border-green-300',
+            shadowColor: 'shadow-[0_4px_0_rgb(21,128,61)]',
+            action: performTask,
+            pulse: isAtDeliverySpot
+        }
+    }
+
+    const btnA = getButtonAConfig()
 
     return (
         <div className="absolute bottom-8 right-8 flex flex-col items-end gap-4 pointer-events-auto z-50 select-none touch-none">
@@ -28,15 +70,19 @@ export function VirtualGamepad() {
                     <span className="text-white font-bold text-lg">B</span>
                 </button>
 
-                {/* Button A (Right) - Green */}
+                {/* Button A (Right) - Contextual */}
                 <button
                     className={`
-                        absolute top-1/2 -translate-y-1/2 right-0 w-14 h-14 rounded-full shadow-[0_4px_0_rgb(21,128,61)] active:shadow-none active:translate-y-1 transition-all flex items-center justify-center border-2 border-green-300
-                        ${isAtDeliverySpot ? 'bg-green-500 animate-pulse' : 'bg-green-600'}
+                        absolute top-1/2 -translate-y-1/2 right-0 w-14 h-14 rounded-full active:shadow-none active:translate-y-1 transition-all flex flex-col items-center justify-center border-2
+                        ${btnA.color} ${btnA.borderColor} ${btnA.shadowColor}
+                        ${btnA.pulse ? 'animate-pulse' : ''}
                     `}
-                    onClick={performTask}
+                    onClick={btnA.action}
                 >
-                    <span className="text-white font-bold text-lg">A</span>
+                    <span className="text-white font-bold text-lg leading-none">{btnA.label}</span>
+                    {btnA.subLabel && (
+                        <span className="text-[8px] text-white font-bold uppercase leading-none mt-1">{btnA.subLabel}</span>
+                    )}
                 </button>
 
                 {/* Button Y (Bottom) - Yellow */}
