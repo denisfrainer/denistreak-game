@@ -57,19 +57,7 @@ interface GameState {
     setPlayerPosition: (pos: { x: number; y: number; z: number }) => void
     isDriving: boolean
     carPosition: { x: number; y: number; z: number }
-    actions: {
-        // ... existing actions
-        performTask: () => void
-        setDeliveryStatus: (isAtSpot: boolean) => void
-        tick: () => void
-        toggleLowPowerMode: () => void
-        toggleCharacter: () => void
-        collectFood: () => void
-        deliverFood: () => void
-        completeTask: (taskName: string) => void
-        enterCar: () => void
-        exitCar: (pos: { x: number; y: number; z: number }) => void
-    }
+
 }
 
 // NPC Positions
