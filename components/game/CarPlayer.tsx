@@ -2,12 +2,12 @@
 
 import { useGLTF } from '@react-three/drei'
 import { RigidBody, RapierRigidBody, CuboidCollider } from '@react-three/rapier'
-import { useMemo, useRef, useEffect } from 'react'
+import { useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { useGameStore, useGameActions } from '@/store/gameStore'
 import { useControls } from 'leva'
-import { splitGeometryByPosition } from '@/utils/modelUtils'
+import { SkeletonUtils } from 'three-stdlib'
 
 interface CarPlayerProps {
     rigidBodyRef: React.RefObject<RapierRigidBody | null>
@@ -15,14 +15,11 @@ interface CarPlayerProps {
 }
 
 export function CarPlayer({ rigidBodyRef, position }: CarPlayerProps) {
-    const { nodes } = useGLTF('/cars.glb') as any
+    const { scene } = useGLTF('/sedan.glb')
+    const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
+
     const controls = useGameStore((state) => state.controls)
     const { exitCar } = useGameActions()
-
-    // Debug: Log all nodes to find wheels
-    useEffect(() => {
-        console.log('Car Nodes:', Object.keys(nodes))
-    }, [nodes])
 
     // Leva Controls
     const { scale, maxSpeed, acceleration, turnSpeed, drift } = useControls('Car Player', {
@@ -32,52 +29,6 @@ export function CarPlayer({ rigidBodyRef, position }: CarPlayerProps) {
         turnSpeed: { value: 2.0, min: 0.5, max: 5.0, step: 0.1 },
         drift: { value: 0.8, min: 0.1, max: 5.0, step: 0.1 }
     })
-
-    // Memoize the split geometries to avoid re-calculating on every render
-    const wheelGeometries = useMemo(() => {
-        const wheelsMesh = nodes['Object_1'] as THREE.Mesh
-        if (!wheelsMesh) return null
-
-        // Centers from the hierarchy log
-        const centers: Record<string, [number, number, number]> = {
-            police: [0, 0, 0],
-            van: [-3.17, 0, 1.21],
-            sedan: [3.07, -0.09, 1.20]
-        }
-
-        return splitGeometryByPosition(wheelsMesh, centers, 2.0)
-    }, [nodes])
-
-    const carMesh = useMemo(() => {
-        // Using Object_24 (Sedan) as the player car
-        const body = nodes['Object_24'] as THREE.Mesh
-
-        if (body && wheelGeometries && wheelGeometries['sedan']) {
-            const group = new THREE.Group()
-
-            const bodyClone = body.clone()
-            bodyClone.position.set(0, -0.5, 0)
-            bodyClone.rotation.set(0, Math.PI, 0)
-            group.add(bodyClone)
-
-            const wheelsGeometry = wheelGeometries['sedan']
-            const wheelsMaterial = (nodes['Object_1'] as THREE.Mesh).material
-            const wheelsMesh = new THREE.Mesh(wheelsGeometry, wheelsMaterial)
-
-            // Sedan Offset: Inverse of [3.07, -0.09, 1.20] -> [-3.07, 0.09, -1.20]
-            // Adjusted for base position (0, -0.5, 0)
-            const offsetX = -3.07
-            const offsetY = 0.09 - 0.5
-            const offsetZ = -1.20
-
-            wheelsMesh.position.set(offsetX, offsetY, offsetZ)
-            wheelsMesh.rotation.set(0, Math.PI, 0)
-            group.add(wheelsMesh)
-
-            return group
-        }
-        return null
-    }, [nodes, wheelGeometries])
 
     useFrame((state, delta) => {
         if (!rigidBodyRef.current) return
@@ -128,8 +79,6 @@ export function CarPlayer({ rigidBodyRef, position }: CarPlayerProps) {
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [exitCar, rigidBodyRef])
 
-    if (!carMesh) return null
-
     return (
         <RigidBody
             ref={rigidBodyRef}
@@ -141,7 +90,7 @@ export function CarPlayer({ rigidBodyRef, position }: CarPlayerProps) {
             type="dynamic"
         >
             <CuboidCollider args={[1 * scale * 0.3, 0.5 * scale * 0.3, 2 * scale * 0.3]} position={[0, 0.5, 0]} />
-            <primitive object={carMesh} scale={scale} castShadow receiveShadow />
+            <primitive object={clone} scale={scale} castShadow receiveShadow />
         </RigidBody>
     )
 }

@@ -85,16 +85,6 @@ export function Scene() {
                     {/* Neon Obstacles (Physics Playground) */}
                     <NeonObstacles />
 
-                    {/* Cars (Obstacles) */}
-                    {/* Police near Office Guy (approx [10, 0, 10]) */}
-                    <CarProp type="police" position={[15, 0.5, 15]} rotation={[0, Math.PI / 4, 0]} />
-
-                    {/* Van near Russian Gang (approx [-40, 0, -10]) */}
-                    <CarProp type="van" position={[-35, 0.5, -15]} rotation={[0, -Math.PI / 3, 0]} />
-
-                    {/* Debug Car for Node Inspection (Removed) */}
-                    {/* <DebugCar /> */}
-
                     {/* AI NPCs - Randomly Spawned */}
                     <SmartNPC npcId="office_guy" modelPath="/office-npc1.glb" initialPosition={getRandomSpawn()} scale={3.0} />
                     <SmartNPC npcId="boris" modelPath="/russian-npc1.glb" initialPosition={getRandomSpawn()} scale={3.0} />

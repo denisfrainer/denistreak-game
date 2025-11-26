@@ -24,7 +24,7 @@ export function DialogueSystem() {
                 const timeout = setTimeout(() => {
                     setDisplayedText((prev) => prev + interaction.data.text[currentIndex])
                     setCurrentIndex((prev) => prev + 1)
-                }, 3) // Typewriter speed (3ms)
+                }, 1) // Typewriter speed (1ms)
                 return () => clearTimeout(timeout)
             }
         }
