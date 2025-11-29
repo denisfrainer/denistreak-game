@@ -47,7 +47,7 @@ export function SmartNPC({ npcId, modelPath, initialPosition, scale = 1 }: Smart
 
     // Constants
     const PATROL_RADIUS = 10
-    const MOVE_SPEED = 2
+    const MOVE_SPEED = 4 // Increased from 2 to 4
     const IDLE_TIME_MIN = 2000
     const IDLE_TIME_MAX = 5000
     const STUCK_CHECK_INTERVAL = 2.0 // Check every 2 seconds
@@ -65,18 +65,26 @@ export function SmartNPC({ npcId, modelPath, initialPosition, scale = 1 }: Smart
         const idleAction = actions[names.find(n => /idle|breath/i.test(n)) || names[0]]
         const walkAction = actions[names.find(n => /walk|run|move/i.test(n)) || names[0]]
 
+        // console.log(`NPC ${npcId} State: ${state}`, { idle: idleAction?.getClip().name, walk: walkAction?.getClip().name })
+
         if (state === 'PATROL') {
-            idleAction?.fadeOut(0.2)
-            walkAction?.reset().fadeIn(0.2).play()
+            if (idleAction && walkAction && idleAction !== walkAction) {
+                idleAction.fadeOut(0.2)
+                walkAction.reset().fadeIn(0.2).play()
+            } else if (walkAction) {
+                walkAction.fadeIn(0.2).play()
+            }
         } else {
-            walkAction?.fadeOut(0.2)
-            idleAction?.reset().fadeIn(0.2).play()
+            if (idleAction && walkAction && idleAction !== walkAction) {
+                walkAction.fadeOut(0.2)
+                idleAction.reset().fadeIn(0.2).play()
+            } else if (idleAction) {
+                idleAction.fadeIn(0.2).play()
+            }
         }
 
-        return () => {
-            idleAction?.stop()
-            walkAction?.stop()
-        }
+        // Removed cleanup stop() to allow crossfades to finish naturally
+        return () => { }
     }, [state, actions, names])
 
     // State Machine Logic
@@ -123,7 +131,7 @@ export function SmartNPC({ npcId, modelPath, initialPosition, scale = 1 }: Smart
         }
 
         if (state === 'PATROL' && targetPosition) {
-            const direction = new THREE.Vector3().subVectors(targetPosition, currentVec).normalize()
+            const direction = new THREE.Vector3().subVectors(targetPosition, currentVec)
             const distance = currentVec.distanceTo(targetPosition)
 
             if (distance < 0.5) {
@@ -132,12 +140,27 @@ export function SmartNPC({ npcId, modelPath, initialPosition, scale = 1 }: Smart
                 setState('IDLE')
             } else {
                 // Move
-                const velocity = direction.multiplyScalar(MOVE_SPEED)
-                rigidBodyRef.current.setLinvel({ x: velocity.x, y: 0, z: velocity.z }, true)
+                // Flatten direction to prevent "flying" or "digging"
+                direction.y = 0
+                if (direction.lengthSq() > 0.001) {
+                    direction.normalize()
+                    const velocity = direction.multiplyScalar(MOVE_SPEED)
+                    rigidBodyRef.current.setLinvel({ x: velocity.x, y: 0, z: velocity.z }, true)
 
-                // Rotate to face movement
-                const lookAtTarget = new THREE.Vector3(targetPosition.x, currentPos.y, targetPosition.z)
-                groupRef.current.lookAt(lookAtTarget)
+                    // Smooth Rotation
+                    const targetAngle = Math.atan2(direction.x, direction.z)
+                    const currentRotation = groupRef.current.rotation.y
+                    let angleDiff = targetAngle - currentRotation
+
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2
+
+                    groupRef.current.rotation.y = THREE.MathUtils.lerp(
+                        currentRotation,
+                        currentRotation + angleDiff,
+                        0.2 // Snappier rotation to prevent "moonwalking" look
+                    )
+                }
             }
         } else if (state === 'TALKING' && playerPosition) {
             // Stop moving

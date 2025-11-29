@@ -153,12 +153,13 @@ export function Player({ rigidBodyRef }: PlayerProps) {
                 .normalize()
 
             // Adjusted multiplier to 35 as requested by user
-            let currentSpeed = MOVESPEED * 35
+            const SPEED_BOOST = 1.44 // Another 20% increase (1.2 * 1.2)
+            let currentSpeed = MOVESPEED * 35 * SPEED_BOOST
             if (targetState === 'RUN') {
                 // Boost for non-girl characters (Soldier, Wolf, Businessman)
                 const isGirl = characterKey === 'girl'
                 const extraRunBoost = isGirl ? 1.0 : 1.8 // Increased to 80% extra speed
-                currentSpeed = MOVESPEED * RUN_MULTIPLIER * 35 * extraRunBoost
+                currentSpeed = MOVESPEED * RUN_MULTIPLIER * 35 * extraRunBoost * SPEED_BOOST
             }
 
             const moveImpulse = moveDir.multiplyScalar(currentSpeed)
